@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
   <title>AR Recruitment — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
   <style>
     :root {
       --primary: #0f172a;
@@ -160,6 +161,16 @@
       .brand-text h1 { font-size: 14px; }
       .brand-text small { font-size: 11px; }
     }
+    @media (min-width: 900px) {
+      #demo-quality-grid { grid-template-columns: 1fr 1fr !important; }
+    }
+    /* Quality delta card */
+    .quality-big { font-size: 38px; font-weight: 900; line-height: 1; }
+    .quality-delta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; margin-top: 10px; }
+    .quality-delta.up { background: #ecfdf5; color: #065f46; }
+    .quality-delta.down { background: #fef2f2; color: #991b1b; }
+    .quality-delta.flat { background: var(--gray-100); color: var(--gray-600); }
+    .quality-vs { font-size: 11px; color: var(--gray-500); margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -237,6 +248,58 @@
           <h3>Top entrevistadores</h3>
           <div class="section-sub">Cuántas entrevistas ha hecho cada uno · % de aprobados</div>
           <div id="interviewer-list"></div>
+        </div>
+      </div>
+
+      <!-- TREND mes a mes -->
+      <div class="section-card" style="margin-top:16px;">
+        <h3>Tendencia mes a mes</h3>
+        <div class="section-sub">Volumen de entrevistas (barras) y % aprobados (línea). ¿La calidad del pipeline sube o baja?</div>
+        <div id="chart-trend" style="min-height:280px;"></div>
+      </div>
+
+      <!-- Pregunta por pregunta -->
+      <div class="section-card" style="margin-top:16px;">
+        <h3>Análisis pregunta-por-pregunta</h3>
+        <div class="section-sub">Score promedio de cada pregunta (1-5) · rojo &lt;3 · ámbar 3-3.5 · verde ≥3.5. La más baja es la debilidad del pipeline.</div>
+        <div id="chart-questions" style="min-height:340px;"></div>
+      </div>
+
+      <!-- Comparativa entrevistadores -->
+      <div class="section-card" style="margin-top:16px;">
+        <h3>Comparativa entrevistadores</h3>
+        <div class="section-sub">Qué tan estricto o flexible es cada uno · útil para calibrar criterios entre el equipo</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Entrevistador</th>
+                <th>Entrevistas</th>
+                <th>Score avg</th>
+                <th>vs equipo</th>
+                <th>% Aprobados</th>
+                <th>% Borderline</th>
+                <th>% No pasa</th>
+              </tr>
+            </thead>
+            <tbody id="interviewer-compare-tbody">
+              <tr><td colspan="7" class="empty">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Demografía + Quality delta -->
+      <div style="display:grid; grid-template-columns: 1fr; gap:16px; margin-top:16px;" id="demo-quality-grid">
+        <div class="section-card">
+          <h3>Distribución por edad</h3>
+          <div class="section-sub">Pass rate por rango etario · ¿qué edades aprueban más?</div>
+          <div id="chart-age" style="min-height:260px;"></div>
+        </div>
+        <div class="section-card">
+          <h3>Δ Calidad vs periodo anterior</h3>
+          <div class="section-sub">Score promedio actual vs un período idéntico antes</div>
+          <div id="quality-delta-card" style="padding:20px 0;"></div>
         </div>
       </div>
 
@@ -398,11 +461,37 @@
       return rows;
     }
 
+    const _chartRegistry = {};
+    function mountChart(elId, opts) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      if (_chartRegistry[elId]) { try { _chartRegistry[elId].destroy(); } catch(e){} delete _chartRegistry[elId]; }
+      el.innerHTML = '';
+      if (typeof ApexCharts === 'undefined') {
+        el.innerHTML = '<div class="empty">Cargando librería de gráficos…</div>';
+        setTimeout(() => mountChart(elId, opts), 200);
+        return;
+      }
+      const c = new ApexCharts(el, opts);
+      _chartRegistry[elId] = c;
+      c.render();
+    }
+    function emptyChart(elId, msg) {
+      if (_chartRegistry[elId]) { try { _chartRegistry[elId].destroy(); } catch(e){} delete _chartRegistry[elId]; }
+      const el = document.getElementById(elId);
+      if (el) el.innerHTML = `<div class="empty">${msg || 'Sin datos en el periodo'}</div>`;
+    }
+
     function renderAll() {
       const rows = getFiltered();
       renderKPIs(rows);
       renderVerdictBars(rows);
       renderInterviewers(rows);
+      renderTrend(rows);
+      renderQuestionAnalysis(rows);
+      renderInterviewerCompare(rows);
+      renderAgeDistribution(rows);
+      renderQualityDelta(rows);
       renderTable(rows);
     }
 
@@ -515,6 +604,211 @@
           </tr>
         `;
       }).join('');
+    }
+
+    // ============== TREND mes a mes ==============
+    function renderTrend(rows) {
+      if (!rows.length) return emptyChart('chart-trend');
+      // Group by YYYY-MM
+      const byMonth = {};
+      rows.forEach(r => {
+        const d = new Date(r.submitted_at);
+        const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        if (!byMonth[k]) byMonth[k] = { total: 0, pass: 0, totalScore: 0 };
+        byMonth[k].total++;
+        byMonth[k].totalScore += r.total_score || 0;
+        if (getVerdictClass(r.total_score) === 'pass') byMonth[k].pass++;
+      });
+      const months = Object.keys(byMonth).sort();
+      if (months.length < 1) return emptyChart('chart-trend');
+      const monthLabels = months.map(k => {
+        const [y, m] = k.split('-');
+        return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(m)-1] + ' ' + y.slice(2);
+      });
+      mountChart('chart-trend', {
+        chart: { type: 'line', height: 300, toolbar: { show: false }, fontFamily: 'inherit' },
+        series: [
+          { name: 'Entrevistas', type: 'column', data: months.map(k => byMonth[k].total) },
+          { name: '% aprobados', type: 'line', data: months.map(k => byMonth[k].total > 0 ? +(byMonth[k].pass / byMonth[k].total * 100).toFixed(1) : 0) }
+        ],
+        stroke: { width: [0, 3], curve: 'smooth' },
+        colors: ['#3b82f6', '#10b981'],
+        xaxis: { categories: monthLabels },
+        yaxis: [
+          { title: { text: 'Entrevistas', style: { fontSize: '11px', fontWeight: 600 } }, labels: { style: { fontSize: '11px' } } },
+          { opposite: true, title: { text: '% aprobados', style: { fontSize: '11px', fontWeight: 600 } }, min: 0, max: 100, labels: { formatter: v => v.toFixed(0) + '%', style: { fontSize: '11px' } } }
+        ],
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+        dataLabels: { enabled: false },
+        markers: { size: 5, strokeWidth: 0 },
+        legend: { position: 'top' },
+        grid: { borderColor: '#e5e7eb', strokeDashArray: 3 },
+        tooltip: { shared: true, y: [{ formatter: v => v + ' entrevistas' }, { formatter: v => v.toFixed(1) + '%' }] }
+      });
+    }
+
+    // ============== Pregunta por pregunta ==============
+    const QUESTION_LABELS = {
+      1: 'Q1 · ¿Frente a un cliente hoy?',
+      2: 'Q2 · ¿Tiene hambre o solo busca trabajo?',
+      3: 'Q3 · ¿Es coachable?',
+      4: 'Q4 · ¿Aprende solo?',
+      5: 'Q5 · ¿Algo que perder si no funciona?',
+      6: 'Q6 · ¿Cierra en 45 días?',
+      7: 'Q7 · ¿Vale el riesgo?',
+      8: 'Q8 · ¿Encaja en el equipo / industria?',
+      9: 'Q9 · ¿Pagarías $1,600 de tu bolsillo?',
+      10: 'Q10 · ¿Te la jugarías por esta persona?'
+    };
+    function renderQuestionAnalysis(rows) {
+      if (!rows.length) return emptyChart('chart-questions');
+      const sums = {}, counts = {};
+      for (let qid = 1; qid <= 10; qid++) { sums[qid] = 0; counts[qid] = 0; }
+      rows.forEach(r => {
+        (r.scores || []).forEach(s => {
+          if (s.question_id >= 1 && s.question_id <= 10 && typeof s.score === 'number') {
+            sums[s.question_id] += s.score;
+            counts[s.question_id]++;
+          }
+        });
+      });
+      const data = [], cats = [];
+      for (let qid = 1; qid <= 10; qid++) {
+        if (counts[qid] === 0) continue;
+        const avg = +(sums[qid] / counts[qid]).toFixed(2);
+        data.push(avg);
+        cats.push(QUESTION_LABELS[qid]);
+      }
+      if (!data.length) return emptyChart('chart-questions', 'Sin scores aún');
+      const colors = data.map(v => v < 3 ? '#ef4444' : v < 3.5 ? '#f59e0b' : '#10b981');
+      mountChart('chart-questions', {
+        chart: { type: 'bar', height: 380, toolbar: { show: false }, fontFamily: 'inherit' },
+        series: [{ name: 'Score promedio', data }],
+        xaxis: { categories: cats, max: 5, min: 0, labels: { formatter: v => Number(v).toFixed(1) } },
+        plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true, barHeight: '70%' } },
+        colors,
+        dataLabels: { enabled: true, formatter: v => v.toFixed(2), style: { colors: ['#1a1a2e'], fontWeight: 700 }, offsetX: 24 },
+        legend: { show: false },
+        tooltip: { y: { formatter: v => v.toFixed(2) + ' / 5' } },
+        grid: { borderColor: '#e5e7eb', strokeDashArray: 3 }
+      });
+    }
+
+    // ============== Comparativa entrevistadores ==============
+    function renderInterviewerCompare(rows) {
+      const tbody = document.getElementById('interviewer-compare-tbody');
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin entrevistas en el periodo</td></tr>'; return; }
+      const teamAvg = rows.reduce((s, r) => s + (r.total_score || 0), 0) / rows.length;
+      const map = {};
+      rows.forEach(r => {
+        const k = r.interviewer || '—';
+        if (!map[k]) map[k] = { total: 0, scoreSum: 0, pass: 0, borderline: 0, fail: 0 };
+        map[k].total++;
+        map[k].scoreSum += r.total_score || 0;
+        const v = getVerdictClass(r.total_score);
+        map[k][v]++;
+      });
+      const sorted = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+      tbody.innerHTML = sorted.map(([name, d]) => {
+        const avg = d.scoreSum / d.total;
+        const delta = avg - teamAvg;
+        const deltaColor = delta > 1 ? 'var(--green)' : delta < -1 ? 'var(--red)' : 'var(--gray-500)';
+        const deltaStr = (delta > 0 ? '+' : '') + delta.toFixed(1);
+        const label = Math.abs(delta) <= 1 ? '(en línea)' : delta > 0 ? '(más generoso)' : '(más estricto)';
+        return `
+          <tr>
+            <td style="font-weight:700;">${escapeHtml(name)}</td>
+            <td>${d.total}</td>
+            <td style="font-weight:700;">${avg.toFixed(1)}</td>
+            <td style="color:${deltaColor}; font-weight:600;">${deltaStr} <span style="color:var(--gray-500); font-weight:400;">${label}</span></td>
+            <td><span class="pill pass">${(d.pass / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.pass})</span></td>
+            <td><span class="pill borderline">${(d.borderline / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.borderline})</span></td>
+            <td><span class="pill fail">${(d.fail / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.fail})</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ============== Distribución por edad ==============
+    function renderAgeDistribution(rows) {
+      const withAge = rows.filter(r => r.age && r.age >= 16);
+      if (!withAge.length) return emptyChart('chart-age', 'Sin edades capturadas en este periodo');
+      const buckets = [
+        { lbl: '18-25', min: 18, max: 25 },
+        { lbl: '26-35', min: 26, max: 35 },
+        { lbl: '36-45', min: 36, max: 45 },
+        { lbl: '46+',   min: 46, max: 99 }
+      ];
+      buckets.forEach(b => { b.total = 0; b.pass = 0; });
+      withAge.forEach(r => {
+        const b = buckets.find(x => r.age >= x.min && r.age <= x.max);
+        if (b) { b.total++; if (getVerdictClass(r.total_score) === 'pass') b.pass++; }
+      });
+      const totalSeries = buckets.map(b => b.total);
+      const passRateSeries = buckets.map(b => b.total > 0 ? +(b.pass / b.total * 100).toFixed(1) : 0);
+      mountChart('chart-age', {
+        chart: { type: 'bar', height: 260, toolbar: { show: false }, fontFamily: 'inherit' },
+        series: [
+          { name: 'Total', type: 'column', data: totalSeries },
+          { name: '% aprobados', type: 'line', data: passRateSeries }
+        ],
+        stroke: { width: [0, 3] },
+        colors: ['#8b5cf6', '#10b981'],
+        xaxis: { categories: buckets.map(b => b.lbl + ' años') },
+        yaxis: [
+          { title: { text: 'Cantidad', style: { fontSize: '11px' } } },
+          { opposite: true, min: 0, max: 100, title: { text: '% pasaron', style: { fontSize: '11px' } }, labels: { formatter: v => v.toFixed(0) + '%' } }
+        ],
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+        dataLabels: { enabled: false },
+        markers: { size: 5 },
+        legend: { position: 'top' },
+        grid: { borderColor: '#e5e7eb', strokeDashArray: 3 }
+      });
+    }
+
+    // ============== Δ Quality vs periodo anterior ==============
+    function renderQualityDelta(rows) {
+      const card = document.getElementById('quality-delta-card');
+      if (!rows.length) { card.innerHTML = '<div class="empty">Sin entrevistas en el periodo</div>'; return; }
+      // Average score now vs comparable previous window
+      const sorted = [...rows].sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+      const earliest = new Date(sorted[0].submitted_at);
+      const latest = new Date(sorted[sorted.length - 1].submitted_at);
+      const windowMs = Math.max(latest - earliest, 24 * 3600 * 1000); // at least 1 day
+      const priorStart = new Date(earliest - windowMs);
+      // Previous window: all scorecards (not filtered) submitted between priorStart and earliest, matching the same loc/verdict filters
+      let priorRows = allScorecards.filter(r => {
+        const t = new Date(r.submitted_at);
+        return t >= priorStart && t < earliest;
+      });
+      if (filterLoc !== 'all') priorRows = priorRows.filter(r => r.location === filterLoc);
+      // Note: don't apply verdict filter to the prior window — comparing quality, not segment
+
+      const avgNow = rows.reduce((s, r) => s + (r.total_score || 0), 0) / rows.length;
+      const passRateNow = rows.filter(r => getVerdictClass(r.total_score) === 'pass').length / rows.length * 100;
+
+      let html = `
+        <div style="text-align:center;">
+          <div class="quality-big" style="color:var(--primary);">${avgNow.toFixed(1)} <span style="font-size:18px; color:var(--gray-400); font-weight:600;">/ 50</span></div>
+          <div style="font-size:12px; color:var(--gray-500); margin-top:4px;">Score promedio actual · ${rows.length} entrevistas · ${passRateNow.toFixed(0)}% pass rate</div>
+      `;
+      if (priorRows.length >= 2) {
+        const avgPrior = priorRows.reduce((s, r) => s + (r.total_score || 0), 0) / priorRows.length;
+        const passRatePrior = priorRows.filter(r => getVerdictClass(r.total_score) === 'pass').length / priorRows.length * 100;
+        const deltaScore = avgNow - avgPrior;
+        const deltaPass = passRateNow - passRatePrior;
+        const cls = Math.abs(deltaScore) < 1 ? 'flat' : (deltaScore > 0 ? 'up' : 'down');
+        const arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '●';
+        html += `
+          <div class="quality-delta ${cls}">${arrow} ${deltaScore >= 0 ? '+' : ''}${deltaScore.toFixed(1)} pts vs anterior</div>
+          <div class="quality-vs">Periodo anterior (${priorRows.length} entrevistas): <b>${avgPrior.toFixed(1)}</b> · ${passRatePrior.toFixed(0)}% pass rate (${deltaPass >= 0 ? '+' : ''}${deltaPass.toFixed(0)}pts)</div>
+        `;
+      } else {
+        html += `<div class="quality-vs" style="margin-top:10px;">No hay periodo anterior comparable todavía (necesitamos 2+ entrevistas previas)</div>`;
+      }
+      html += '</div>';
+      card.innerHTML = html;
     }
 
     function openDrawer(id) {
