@@ -842,8 +842,39 @@
           </div>
         `).join('')}
         ${r.duration_minutes ? `<div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--gray-200); font-size:12px; color:var(--gray-500);">Duración: <b style="color:var(--gray-700);">${r.duration_minutes} min</b></div>` : ''}
+        ${isMaster() ? `
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200); display:flex; justify-content:flex-end;">
+            <button onclick="deleteScorecard('${r.id}', '${escapeAttr(r.candidate_name)}')"
+              style="background:#fef2f2; color:var(--red); border:1.5px solid #fecaca; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;">
+              🗑 Eliminar entrevista
+            </button>
+          </div>
+        ` : ''}
       `;
       document.getElementById('drawer').classList.add('show');
+    }
+
+    function isMaster() {
+      // Master users can delete scorecards
+      return currentUser === 'Saul';
+    }
+
+    function escapeAttr(s) { return String(s ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+    async function deleteScorecard(id, name) {
+      if (!isMaster()) { alert('Solo Saúl puede eliminar entrevistas'); return; }
+      if (!confirm(`¿Eliminar la entrevista de "${name}"?\n\nEsto NO se puede deshacer.`)) return;
+      try {
+        const res = await fetch(`${SUPA_URL}/rest/v1/ar_interview_scorecards?id=eq.${id}`, {
+          method: 'DELETE',
+          headers: SUPA_HEADERS
+        });
+        if (!res.ok && res.status !== 204) throw new Error(await res.text());
+        closeDrawer();
+        await refresh();
+      } catch (e) {
+        alert('Error al eliminar: ' + e.message);
+      }
     }
 
     function closeDrawer() {
