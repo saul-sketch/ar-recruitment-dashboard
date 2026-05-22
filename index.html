@@ -313,7 +313,7 @@
       const btn = document.getElementById('login-btn');
       btn.disabled = true; btn.textContent = 'Verificando…';
       try {
-        const res = await fetch(`${SUPA_URL}/rest/v1/app_users?name=eq.${encodeURIComponent(user)}&password=eq.${encodeURIComponent(pass)}&select=name,location_access`, { headers: SUPA_HEADERS });
+        const res = await fetch(`${SUPA_URL}/rest/v1/app_users?name=ilike.${encodeURIComponent(user)}&password=eq.${encodeURIComponent(pass)}&select=name,location_access`, { headers: SUPA_HEADERS });
         const data = await res.json();
         if (!Array.isArray(data) || !data.length) { err.textContent = 'Credenciales incorrectas'; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Iniciar sesión'; return; }
         currentUser = data[0].name;
