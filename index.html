@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>AR Recruitment — Dashboard</title>
+  <style>
+    :root {
+      --primary: #0f172a;
+      --accent: #e94560;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --orange: #f97316;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-400: #94a3b8;
+      --gray-500: #64748b;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --gray-900: #0f172a;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .container { max-width: 1280px; margin: 0 auto; padding: 24px 20px 48px; }
+
+    /* Login */
+    .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .login-card { background: white; border-radius: 16px; padding: 32px 28px; box-shadow: var(--shadow-lg); width: 100%; max-width: 380px; }
+    .login-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .login-sub { color: var(--gray-500); font-size: 13px; margin-bottom: 22px; }
+    .field { margin-bottom: 14px; }
+    .field-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-600); margin-bottom: 6px; }
+    .field-input, .field-select {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-300); border-radius: 10px;
+      font-size: 14px; font-family: inherit; background: white;
+    }
+    .field-input:focus, .field-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15,23,42,0.1); }
+    .btn { padding: 11px 18px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.9; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-ghost { background: var(--gray-100); color: var(--gray-700); }
+    .btn-full { width: 100%; }
+    .login-error { background: #fef2f2; color: var(--accent); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; border: 1px solid #fecaca; }
+
+    /* Header */
+    .topbar {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 36px; height: 36px; border-radius: 8px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
+    .brand-text h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+    .brand-text small { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .user-chip { padding: 6px 14px; background: var(--gray-100); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--gray-700); }
+
+    /* Filters */
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; align-items: center; }
+    .filter-group { display: inline-flex; background: white; border: 1px solid var(--gray-200); border-radius: 10px; padding: 3px; }
+    .filter-tab { padding: 7px 14px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; color: var(--gray-500); transition: all 0.15s; border: none; background: transparent; font-family: inherit; }
+    .filter-tab.active { background: var(--primary); color: white; }
+    .filter-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-500); margin-right: 4px; }
+
+    /* KPI grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .kpi-card { background: white; border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); border-left: 4px solid var(--gray-300); }
+    .kpi-card.green { border-left-color: var(--green); }
+    .kpi-card.amber { border-left-color: var(--yellow); }
+    .kpi-card.red { border-left-color: var(--red); }
+    .kpi-card.blue { border-left-color: var(--blue); }
+    .kpi-card.purple { border-left-color: var(--purple); }
+    .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray-500); }
+    .kpi-value { font-size: 28px; font-weight: 800; margin-top: 4px; line-height: 1; }
+    .kpi-detail { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
+
+    /* Section card */
+    .section-card { background: white; border-radius: 14px; padding: 18px 22px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .section-card h3 { font-size: 14px; font-weight: 800; letter-spacing: -0.1px; margin-bottom: 4px; }
+    .section-sub { font-size: 12px; color: var(--gray-500); margin-bottom: 14px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray-500); border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
+    td { padding: 12px 8px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+    tbody tr { cursor: pointer; transition: background 0.1s; }
+    tbody tr:hover { background: var(--gray-50); }
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pill.pass { background: #ecfdf5; color: #065f46; }
+    .pill.borderline { background: #fffbeb; color: #92400e; }
+    .pill.fail { background: #fef2f2; color: #991b1b; }
+    .pill.loc-orl { background: #eff6ff; color: #1e40af; }
+    .pill.loc-kis { background: #fff7ed; color: #c2410c; }
+    .score-cell { font-weight: 800; font-size: 14px; }
+    .score-cell.pass { color: var(--green); }
+    .score-cell.borderline { color: var(--yellow); }
+    .score-cell.fail { color: var(--red); }
+    .empty { text-align: center; padding: 40px 20px; color: var(--gray-400); font-size: 13px; }
+
+    /* Drawer for candidate detail */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+    .drawer-overlay.show { display: flex; }
+    .drawer {
+      background: white;
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      border-radius: 18px 18px 0 0;
+      overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+    @media (min-width: 768px) {
+      .drawer-overlay { align-items: center; }
+      .drawer { border-radius: 18px; max-height: 85vh; }
+    }
+    @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; background: white; display: flex; justify-content: space-between; align-items: center; }
+    .drawer-body { padding: 20px 24px; }
+    .drawer-close { background: var(--gray-100); border: none; border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; font-family: inherit; }
+    .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-100); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-q { font-size: 13px; color: var(--gray-700); flex: 1; padding-right: 12px; }
+    .breakdown-q small { display: block; color: var(--gray-400); font-size: 10px; margin-bottom: 2px; letter-spacing: 0.3px; text-transform: uppercase; font-weight: 700; }
+    .breakdown-score { font-size: 18px; font-weight: 800; min-width: 40px; text-align: right; }
+
+    /* Bar chart simple */
+    .bar-row { display: grid; grid-template-columns: 100px 1fr 40px; gap: 10px; align-items: center; padding: 6px 0; font-size: 13px; }
+    .bar-row .lbl { color: var(--gray-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-row .bar-track { background: var(--gray-100); height: 18px; border-radius: 9px; overflow: hidden; }
+    .bar-row .bar-fill { height: 100%; border-radius: 9px; transition: width 0.4s ease; }
+    .bar-row .val { font-weight: 700; text-align: right; font-size: 12px; }
+
+    @media (max-width: 640px) {
+      .container { padding: 16px 14px 32px; }
+      .topbar { padding: 12px 16px; }
+      .kpi-value { font-size: 24px; }
+      .kpi-card { padding: 12px 14px; }
+      .brand-text h1 { font-size: 14px; }
+      .brand-text small { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login -->
+  <div class="login-screen" id="screen-login">
+    <div class="login-card">
+      <div class="login-title">Recruitment Dashboard</div>
+      <div class="login-sub">Auto Republic — KPIs y resultados de entrevistas</div>
+      <div class="field">
+        <label class="field-label">Usuario</label>
+        <input type="text" id="login-user" class="field-input" autocomplete="username" autocapitalize="off">
+      </div>
+      <div class="field">
+        <label class="field-label">Contraseña</label>
+        <input type="password" id="login-pass" class="field-input" autocomplete="current-password" onkeydown="if(event.key==='Enter') tryLogin()">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="tryLogin()" id="login-btn">Iniciar sesión</button>
+      <div class="login-error" id="login-error" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="screen-app" style="display:none;">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">AR</div>
+        <div class="brand-text">
+          <h1>Recruitment Dashboard</h1>
+          <small id="last-refresh">—</small>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="refresh()" title="Refrescar">↻</button>
+        <div class="user-chip" id="user-chip">—</div>
+        <button class="btn btn-ghost" onclick="logout()" title="Cerrar sesión">✕</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="filters">
+        <span class="filter-label">Periodo</span>
+        <div class="filter-group" id="period-filter">
+          <button class="filter-tab" data-period="7">Últ. 7d</button>
+          <button class="filter-tab" data-period="30">Últ. 30d</button>
+          <button class="filter-tab" data-period="90">Últ. 90d</button>
+          <button class="filter-tab active" data-period="all">Todo</button>
+        </div>
+        <span class="filter-label">Locación</span>
+        <div class="filter-group" id="loc-filter">
+          <button class="filter-tab active" data-loc="all">Ambas</button>
+          <button class="filter-tab" data-loc="Orlando">Orlando</button>
+          <button class="filter-tab" data-loc="Kissimmee">Kissimmee</button>
+        </div>
+        <span class="filter-label">Verdict</span>
+        <div class="filter-group" id="verdict-filter">
+          <button class="filter-tab active" data-verdict="all">Todos</button>
+          <button class="filter-tab" data-verdict="pass">Aprobados</button>
+          <button class="filter-tab" data-verdict="borderline">Borderline</button>
+          <button class="filter-tab" data-verdict="fail">No pasa</button>
+        </div>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <!-- Distribution + top -->
+      <div style="display:grid; grid-template-columns: 1fr; gap:16px;">
+        <div class="section-card">
+          <h3>Distribución por verdict</h3>
+          <div class="section-sub">Aprobados (≥35) · Borderline (28-34) · No pasa (&lt;28)</div>
+          <div id="verdict-bars"></div>
+        </div>
+
+        <div class="section-card">
+          <h3>Top entrevistadores</h3>
+          <div class="section-sub">Cuántas entrevistas ha hecho cada uno · % de aprobados</div>
+          <div id="interviewer-list"></div>
+        </div>
+      </div>
+
+      <!-- Candidates table -->
+      <div class="section-card" style="margin-top:16px;">
+        <h3>Candidatos entrevistados</h3>
+        <div class="section-sub">Click cualquier fila para ver el desglose completo</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Candidato</th>
+                <th>Edad</th>
+                <th>Locación</th>
+                <th>Entrevistador</th>
+                <th>Score</th>
+                <th>Verdict</th>
+                <th>Dur.</th>
+              </tr>
+            </thead>
+            <tbody id="candidates-tbody">
+              <tr><td colspan="8" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer -->
+  <div class="drawer-overlay" id="drawer" onclick="if(event.target.id==='drawer') closeDrawer()">
+    <div class="drawer">
+      <div class="drawer-header">
+        <div>
+          <div style="font-size:18px; font-weight:800;" id="drawer-name">—</div>
+          <div style="font-size:12px; color:var(--gray-500);" id="drawer-meta">—</div>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">Cerrar</button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPA_URL = 'https://xwxjutaqouaeocvxawlw.supabase.co';
+    const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3eGp1dGFxb3VhZW9jdnhhd2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTIxMzYsImV4cCI6MjA5MjYyODEzNn0.TOigRbaNL5z3Q7hd4llJyqrC6vZwn_-1R-5JudXtJmU';
+    const SUPA_HEADERS = { apikey: SUPA_ANON, Authorization: `Bearer ${SUPA_ANON}`, 'Content-Type': 'application/json' };
+    const BENCHMARK_PASS = 35;
+    const BENCHMARK_BORDERLINE = 28;
+    const VERDICT_COLORS = { pass: '#10b981', borderline: '#f59e0b', fail: '#ef4444' };
+
+    let currentUser = null;
+    let allScorecards = [];
+    let filterPeriod = 'all';
+    let filterLoc = 'all';
+    let filterVerdict = 'all';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const u = localStorage.getItem('ar_rd_user');
+      if (u) {
+        currentUser = u;
+        enterApp();
+      }
+      bindFilters();
+    });
+
+    async function tryLogin() {
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value;
+      const err = document.getElementById('login-error');
+      err.style.display = 'none';
+      if (!user || !pass) { err.textContent = 'Completa usuario y contraseña'; err.style.display = 'block'; return; }
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true; btn.textContent = 'Verificando…';
+      try {
+        const res = await fetch(`${SUPA_URL}/rest/v1/app_users?name=eq.${encodeURIComponent(user)}&password=eq.${encodeURIComponent(pass)}&select=name,location_access`, { headers: SUPA_HEADERS });
+        const data = await res.json();
+        if (!Array.isArray(data) || !data.length) { err.textContent = 'Credenciales incorrectas'; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Iniciar sesión'; return; }
+        currentUser = data[0].name;
+        localStorage.setItem('ar_rd_user', currentUser);
+        enterApp();
+      } catch (e) { err.textContent = 'Error: ' + e.message; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
+    }
+
+    function logout() {
+      if (!confirm('¿Cerrar sesión?')) return;
+      localStorage.removeItem('ar_rd_user');
+      currentUser = null;
+      document.getElementById('screen-app').style.display = 'none';
+      document.getElementById('screen-login').style.display = 'flex';
+      document.getElementById('login-user').value = '';
+      document.getElementById('login-pass').value = '';
+    }
+
+    async function enterApp() {
+      document.getElementById('screen-login').style.display = 'none';
+      document.getElementById('screen-app').style.display = '';
+      document.getElementById('user-chip').textContent = currentUser;
+      await refresh();
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch(`${SUPA_URL}/rest/v1/ar_interview_scorecards?select=*&order=submitted_at.desc`, { headers: SUPA_HEADERS });
+        allScorecards = await res.json();
+        document.getElementById('last-refresh').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        renderAll();
+      } catch (e) {
+        document.getElementById('candidates-tbody').innerHTML = `<tr><td colspan="8" class="empty">Error cargando: ${e.message}</td></tr>`;
+      }
+    }
+
+    function bindFilters() {
+      document.querySelectorAll('#period-filter .filter-tab').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#period-filter .filter-tab').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        filterPeriod = b.dataset.period;
+        renderAll();
+      }));
+      document.querySelectorAll('#loc-filter .filter-tab').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#loc-filter .filter-tab').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        filterLoc = b.dataset.loc;
+        renderAll();
+      }));
+      document.querySelectorAll('#verdict-filter .filter-tab').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#verdict-filter .filter-tab').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        filterVerdict = b.dataset.verdict;
+        renderAll();
+      }));
+    }
+
+    function getVerdictClass(score) {
+      if (score >= BENCHMARK_PASS) return 'pass';
+      if (score >= BENCHMARK_BORDERLINE) return 'borderline';
+      return 'fail';
+    }
+
+    function getVerdictLabel(score) {
+      const c = getVerdictClass(score);
+      return { pass: 'Aprobado', borderline: 'Borderline', fail: 'No pasa' }[c];
+    }
+
+    function getFiltered() {
+      let rows = [...allScorecards];
+      // Period
+      if (filterPeriod !== 'all') {
+        const days = parseInt(filterPeriod);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        rows = rows.filter(r => new Date(r.submitted_at) >= cutoff);
+      }
+      // Location
+      if (filterLoc !== 'all') rows = rows.filter(r => r.location === filterLoc);
+      // Verdict
+      if (filterVerdict !== 'all') rows = rows.filter(r => getVerdictClass(r.total_score) === filterVerdict);
+      return rows;
+    }
+
+    function renderAll() {
+      const rows = getFiltered();
+      renderKPIs(rows);
+      renderVerdictBars(rows);
+      renderInterviewers(rows);
+      renderTable(rows);
+    }
+
+    function renderKPIs(rows) {
+      const total = rows.length;
+      const passed = rows.filter(r => getVerdictClass(r.total_score) === 'pass').length;
+      const borderline = rows.filter(r => getVerdictClass(r.total_score) === 'borderline').length;
+      const failed = rows.filter(r => getVerdictClass(r.total_score) === 'fail').length;
+      const avgScore = total > 0 ? (rows.reduce((s, r) => s + (r.total_score || 0), 0) / total) : 0;
+      const passRate = total > 0 ? (passed / total * 100) : 0;
+      const avgDuration = (() => {
+        const withDur = rows.filter(r => r.duration_minutes);
+        if (!withDur.length) return null;
+        return withDur.reduce((s, r) => s + r.duration_minutes, 0) / withDur.length;
+      })();
+
+      document.getElementById('kpi-grid').innerHTML = `
+        <div class="kpi-card blue">
+          <div class="kpi-label">Entrevistas</div>
+          <div class="kpi-value">${total}</div>
+          <div class="kpi-detail">en el periodo</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Aprobados</div>
+          <div class="kpi-value" style="color:var(--green);">${passed}</div>
+          <div class="kpi-detail">${total > 0 ? passRate.toFixed(0) + '% pass rate' : '—'}</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Borderline</div>
+          <div class="kpi-value" style="color:var(--yellow);">${borderline}</div>
+          <div class="kpi-detail">requieren revisión</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">No pasaron</div>
+          <div class="kpi-value" style="color:var(--red);">${failed}</div>
+          <div class="kpi-detail">descartados</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Score promedio</div>
+          <div class="kpi-value" style="color:var(--purple);">${avgScore.toFixed(1)}</div>
+          <div class="kpi-detail">de 50 posibles</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Duración avg</div>
+          <div class="kpi-value">${avgDuration ? Math.round(avgDuration) + ' min' : '—'}</div>
+          <div class="kpi-detail">por entrevista</div>
+        </div>
+      `;
+    }
+
+    function renderVerdictBars(rows) {
+      const total = rows.length;
+      if (!total) { document.getElementById('verdict-bars').innerHTML = '<div class="empty">Sin entrevistas en el periodo</div>'; return; }
+      const counts = { pass: 0, borderline: 0, fail: 0 };
+      rows.forEach(r => counts[getVerdictClass(r.total_score)]++);
+      const labels = { pass: 'Aprobados', borderline: 'Borderline', fail: 'No pasa' };
+      document.getElementById('verdict-bars').innerHTML = ['pass','borderline','fail'].map(k => {
+        const v = counts[k];
+        const pct = v / total * 100;
+        return `
+          <div class="bar-row">
+            <span class="lbl">${labels[k]}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${VERDICT_COLORS[k]};"></div></div>
+            <span class="val">${v} (${pct.toFixed(0)}%)</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderInterviewers(rows) {
+      if (!rows.length) { document.getElementById('interviewer-list').innerHTML = '<div class="empty">Sin entrevistas en el periodo</div>'; return; }
+      const map = {};
+      rows.forEach(r => {
+        const k = r.interviewer || '—';
+        if (!map[k]) map[k] = { total: 0, pass: 0 };
+        map[k].total++;
+        if (getVerdictClass(r.total_score) === 'pass') map[k].pass++;
+      });
+      const sorted = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+      const maxTotal = Math.max(...sorted.map(s => s[1].total));
+      document.getElementById('interviewer-list').innerHTML = sorted.map(([name, d]) => {
+        const passPct = d.pass / d.total * 100;
+        const barPct = d.total / maxTotal * 100;
+        return `
+          <div class="bar-row">
+            <span class="lbl">${escapeHtml(name)}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${barPct}%; background:var(--primary);"></div></div>
+            <span class="val">${d.total} (${passPct.toFixed(0)}% ✓)</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('candidates-tbody');
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin entrevistas con esos filtros</td></tr>'; return; }
+      tbody.innerHTML = rows.map(r => {
+        const v = getVerdictClass(r.total_score);
+        const dateNice = new Date(r.submitted_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+        return `
+          <tr onclick="openDrawer('${r.id}')">
+            <td>${dateNice}</td>
+            <td style="font-weight:600;">${escapeHtml(r.candidate_name)}</td>
+            <td>${r.age || '—'}</td>
+            <td><span class="pill ${r.location === 'Orlando' ? 'loc-orl' : 'loc-kis'}">${escapeHtml(r.location)}</span></td>
+            <td>${escapeHtml(r.interviewer || '—')}</td>
+            <td class="score-cell ${v}">${r.total_score}/50</td>
+            <td><span class="pill ${v}">${getVerdictLabel(r.total_score)}</span></td>
+            <td>${r.duration_minutes ? r.duration_minutes + 'm' : '—'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openDrawer(id) {
+      const r = allScorecards.find(x => x.id === id);
+      if (!r) return;
+      const v = getVerdictClass(r.total_score);
+      document.getElementById('drawer-name').textContent = r.candidate_name;
+      document.getElementById('drawer-meta').innerHTML = `
+        ${r.age ? r.age + ' años · ' : ''}${escapeHtml(r.location)} · Entrevistado por ${escapeHtml(r.interviewer)} · ${new Date(r.submitted_at).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}
+      `;
+      const scoreColor = VERDICT_COLORS[v];
+      document.getElementById('drawer-body').innerHTML = `
+        <div style="text-align:center; padding:20px 0 24px;">
+          <div style="font-size:48px; font-weight:900; color:${scoreColor}; line-height:1;">${r.total_score}/50</div>
+          <div style="margin-top:8px;"><span class="pill ${v}" style="font-size:13px; padding:5px 14px;">${getVerdictLabel(r.total_score)}</span></div>
+        </div>
+        <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray-500); margin-bottom:10px;">Detalle por pregunta</div>
+        ${(r.scores || []).sort((a,b) => a.question_id - b.question_id).map(s => `
+          <div class="breakdown-row">
+            <div class="breakdown-q">
+              <small>Q${s.question_id}</small>
+              ${escapeHtml(s.question)}
+            </div>
+            <div class="breakdown-score" style="color:${s.score >= 4 ? 'var(--green)' : s.score === 3 ? 'var(--yellow)' : 'var(--red)'};">${s.score}/5</div>
+          </div>
+        `).join('')}
+        ${r.duration_minutes ? `<div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--gray-200); font-size:12px; color:var(--gray-500);">Duración: <b style="color:var(--gray-700);">${r.duration_minutes} min</b></div>` : ''}
+      `;
+      document.getElementById('drawer').classList.add('show');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('show');
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>
