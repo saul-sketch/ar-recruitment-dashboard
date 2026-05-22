@@ -164,6 +164,30 @@
     @media (min-width: 900px) {
       #demo-quality-grid { grid-template-columns: 1fr 1fr !important; }
     }
+    /* View tabs */
+    .view-tabs { display: inline-flex; background: var(--gray-100); border-radius: 12px; padding: 4px; margin-bottom: 4px; gap: 2px; }
+    .view-tab { padding: 10px 18px; font-size: 14px; font-weight: 700; border-radius: 9px; cursor: pointer; color: var(--gray-500); border: none; background: transparent; font-family: inherit; transition: all 0.15s; }
+    .view-tab:hover { color: var(--gray-700); }
+    .view-tab.active { background: var(--primary); color: white; box-shadow: var(--shadow); }
+
+    /* Lifecycle hire card */
+    .hire-row { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 14px 16px; background: white; border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+    .hire-row:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+    .hire-row.abandoned { opacity: 0.6; border-style: dashed; }
+    .hire-row.completed { border-color: var(--green); background: #ecfdf5; }
+    .hire-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .hire-name { font-weight: 700; font-size: 15px; }
+    .hire-meta { font-size: 11px; color: var(--gray-500); }
+    .timeline { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 6px; }
+    .ts-step { background: var(--gray-100); height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.15s; }
+    .ts-step.done { background: var(--green); color: white; }
+    .ts-step.current { background: var(--blue); color: white; animation: pulse-step 1.4s ease-in-out infinite; }
+    @keyframes pulse-step {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+      50% { box-shadow: 0 0 0 4px rgba(59,130,246,0); }
+    }
+    .ts-step.abandoned { background: var(--red); color: white; }
+
     /* Quality delta card */
     .quality-big { font-size: 38px; font-weight: 900; line-height: 1; }
     .quality-delta { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; margin-top: 10px; }
@@ -209,7 +233,14 @@
       </div>
     </div>
 
-    <div class="container">
+    <div class="container" style="padding-bottom:0;">
+      <div class="view-tabs">
+        <button class="view-tab active" data-view="interviews" onclick="switchView('interviews')">Entrevistas</button>
+        <button class="view-tab" data-view="lifecycle" onclick="switchView('lifecycle')">Post-hire (45d)</button>
+      </div>
+    </div>
+
+    <div class="container" id="view-interviews">
       <div class="filters">
         <span class="filter-label">Periodo</span>
         <div class="filter-group" id="period-filter">
@@ -328,6 +359,77 @@
         </div>
       </div>
     </div>
+
+    <!-- ========== LIFECYCLE VIEW ========== -->
+    <div class="container" id="view-lifecycle" style="display:none;">
+      <div class="filters">
+        <span class="filter-label">Locación</span>
+        <div class="filter-group" id="lc-loc-filter">
+          <button class="filter-tab active" data-loc="all">Ambas</button>
+          <button class="filter-tab" data-loc="Orlando">Orlando</button>
+          <button class="filter-tab" data-loc="Kissimmee">Kissimmee</button>
+        </div>
+        <span class="filter-label">Estado</span>
+        <div class="filter-group" id="lc-status-filter">
+          <button class="filter-tab active" data-status="active">Activos</button>
+          <button class="filter-tab" data-status="completed_45d">Completaron 45d</button>
+          <button class="filter-tab" data-status="abandoned">Abandonaron</button>
+          <button class="filter-tab" data-status="all">Todos</button>
+        </div>
+        <button class="btn btn-primary" onclick="openAddHireModal()" style="margin-left:auto;">+ Nuevo hire</button>
+      </div>
+
+      <div class="kpi-grid" id="lc-kpi-grid"></div>
+
+      <div class="section-card">
+        <h3>Hires activos &amp; histórico</h3>
+        <div class="section-sub">Click cualquier hire para abrir su seguimiento detallado · marca milestones, abandono, primera venta</div>
+        <div id="hire-list"><div class="empty">Cargando…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add hire modal -->
+  <div class="drawer-overlay" id="add-hire-overlay" onclick="if(event.target.id==='add-hire-overlay') closeAddHireModal()">
+    <div class="drawer" style="max-width:480px;">
+      <div class="drawer-header">
+        <div style="font-size:17px; font-weight:800;">Registrar nuevo hire</div>
+        <button class="drawer-close" onclick="closeAddHireModal()">Cerrar</button>
+      </div>
+      <div class="drawer-body">
+        <div class="field"><label class="field-label">Nombre del candidato</label><input type="text" id="ah-name" class="field-input" placeholder="Nombre y apellido"></div>
+        <div class="field"><label class="field-label">Locación</label>
+          <select id="ah-loc" class="field-select">
+            <option value="">Seleccionar...</option>
+            <option>Orlando</option>
+            <option>Kissimmee</option>
+          </select>
+        </div>
+        <div class="field"><label class="field-label">Fecha de contratación</label><input type="date" id="ah-date" class="field-input"></div>
+        <div class="field"><label class="field-label">Hiring manager</label><input type="text" id="ah-manager" class="field-input" placeholder="Nombre del manager"></div>
+        <div class="field"><label class="field-label">Vincular a entrevista (opcional)</label>
+          <select id="ah-link" class="field-select"><option value="">Sin vincular</option></select>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
+          <button class="btn btn-ghost" onclick="closeAddHireModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="submitAddHire()">Crear hire</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hire detail drawer -->
+  <div class="drawer-overlay" id="hire-drawer" onclick="if(event.target.id==='hire-drawer') closeHireDrawer()">
+    <div class="drawer">
+      <div class="drawer-header">
+        <div>
+          <div style="font-size:18px; font-weight:800;" id="hd-name">—</div>
+          <div style="font-size:12px; color:var(--gray-500);" id="hd-meta">—</div>
+        </div>
+        <button class="drawer-close" onclick="closeHireDrawer()">Cerrar</button>
+      </div>
+      <div class="drawer-body" id="hd-body"></div>
+    </div>
   </div>
 
   <!-- Drawer -->
@@ -354,9 +456,22 @@
 
     let currentUser = null;
     let allScorecards = [];
+    let allHires = [];
     let filterPeriod = 'all';
     let filterLoc = 'all';
     let filterVerdict = 'all';
+    let lcFilterLoc = 'all';
+    let lcFilterStatus = 'active';
+    let currentView = 'interviews';
+
+    const MILESTONES = [
+      { key: 'day_1',  label: 'Día 1',  dayOffset: 1 },
+      { key: 'week_1', label: 'Sem 1',  dayOffset: 7 },
+      { key: 'week_2', label: 'Sem 2',  dayOffset: 14 },
+      { key: 'week_3', label: 'Sem 3',  dayOffset: 21 },
+      { key: 'week_4', label: 'Sem 4',  dayOffset: 28 },
+      { key: 'day_45', label: '45d',    dayOffset: 45 }
+    ];
 
     document.addEventListener('DOMContentLoaded', () => {
       const u = localStorage.getItem('ar_rd_user');
@@ -404,13 +519,25 @@
 
     async function refresh() {
       try {
-        const res = await fetch(`${SUPA_URL}/rest/v1/ar_interview_scorecards?select=*&order=submitted_at.desc`, { headers: SUPA_HEADERS });
-        allScorecards = await res.json();
+        const [scRes, hRes] = await Promise.all([
+          fetch(`${SUPA_URL}/rest/v1/ar_interview_scorecards?select=*&order=submitted_at.desc`, { headers: SUPA_HEADERS }),
+          fetch(`${SUPA_URL}/rest/v1/ar_new_hire_lifecycle?select=*&order=hire_date.desc`, { headers: SUPA_HEADERS })
+        ]);
+        allScorecards = await scRes.json();
+        allHires = await hRes.json();
         document.getElementById('last-refresh').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         renderAll();
+        renderLifecycle();
       } catch (e) {
         document.getElementById('candidates-tbody').innerHTML = `<tr><td colspan="8" class="empty">Error cargando: ${e.message}</td></tr>`;
       }
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+      document.getElementById('view-interviews').style.display = view === 'interviews' ? '' : 'none';
+      document.getElementById('view-lifecycle').style.display = view === 'lifecycle' ? '' : 'none';
     }
 
     function bindFilters() {
@@ -431,6 +558,19 @@
         b.classList.add('active');
         filterVerdict = b.dataset.verdict;
         renderAll();
+      }));
+      // Lifecycle filters
+      document.querySelectorAll('#lc-loc-filter .filter-tab').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#lc-loc-filter .filter-tab').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        lcFilterLoc = b.dataset.loc;
+        renderLifecycle();
+      }));
+      document.querySelectorAll('#lc-status-filter .filter-tab').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#lc-status-filter .filter-tab').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        lcFilterStatus = b.dataset.status;
+        renderLifecycle();
       }));
     }
 
@@ -842,6 +982,26 @@
           </div>
         `).join('')}
         ${r.duration_minutes ? `<div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--gray-200); font-size:12px; color:var(--gray-500);">Duración: <b style="color:var(--gray-700);">${r.duration_minutes} min</b></div>` : ''}
+        ${(() => {
+          const linkedHire = allHires.find(h => h.scorecard_id === r.id);
+          if (linkedHire) {
+            return `
+              <div style="margin-top:18px; padding:12px 16px; background:#ecfdf5; border-radius:10px;">
+                <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--green); margin-bottom:4px;">✓ Contratado</div>
+                <div style="font-size:13px;">Hire date ${linkedHire.hire_date} · <a href="#" onclick="closeDrawer(); openHireDrawer('${linkedHire.id}'); return false;" style="color:var(--primary); font-weight:700;">Ver seguimiento 45d →</a></div>
+              </div>
+            `;
+          }
+          if (getVerdictClass(r.total_score) !== 'fail') {
+            return `
+              <button onclick="quickHireFromScorecard('${r.id}', '${escapeAttr(r.candidate_name)}', '${r.location}')"
+                style="margin-top:18px; width:100%; padding:11px; background:var(--green); color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-family:inherit; font-size:14px;">
+                ✓ Marcar como contratado
+              </button>
+            `;
+          }
+          return '';
+        })()}
         ${isMaster() ? `
           <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200); display:flex; justify-content:flex-end;">
             <button onclick="deleteScorecard('${r.id}', '${escapeAttr(r.candidate_name)}')"
@@ -883,6 +1043,345 @@
 
     function escapeHtml(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ============== LIFECYCLE ==============
+    function daysBetween(start, end) {
+      const a = new Date(start + 'T00:00:00'); const b = end ? new Date(end + 'T00:00:00') : new Date();
+      return Math.floor((b - a) / 86400000);
+    }
+    function todayISO() {
+      const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function getLifecycleFiltered() {
+      let rows = [...allHires];
+      if (lcFilterLoc !== 'all') rows = rows.filter(r => r.location === lcFilterLoc);
+      if (lcFilterStatus !== 'all') rows = rows.filter(r => r.status === lcFilterStatus);
+      return rows;
+    }
+
+    function renderLifecycle() {
+      const rows = getLifecycleFiltered();
+      renderLcKPIs();  // KPIs use ALL hires (not filtered)
+      renderHireList(rows);
+      refreshScorecardLinkOptions();
+    }
+
+    function renderLcKPIs() {
+      // Use all hires for global KPIs
+      const total = allHires.length;
+      const active = allHires.filter(r => r.status === 'active').length;
+      const completed = allHires.filter(r => r.status === 'completed_45d').length;
+      const abandoned = allHires.filter(r => r.status === 'abandoned').length;
+      const retention = (completed + abandoned) > 0 ? (completed / (completed + abandoned) * 100) : null;
+      const firstSales = allHires.filter(r => r.first_sale_date).map(r => daysBetween(r.hire_date, r.first_sale_date));
+      const avgFirstSale = firstSales.length ? (firstSales.reduce((s, d) => s + d, 0) / firstSales.length) : null;
+      const abandonDays = allHires.filter(r => r.status === 'abandoned' && r.abandon_date).map(r => daysBetween(r.hire_date, r.abandon_date));
+      const avgAbandon = abandonDays.length ? (abandonDays.reduce((s, d) => s + d, 0) / abandonDays.length) : null;
+
+      document.getElementById('lc-kpi-grid').innerHTML = `
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total hires</div>
+          <div class="kpi-value">${total}</div>
+          <div class="kpi-detail">${active} activos</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Completaron 45d</div>
+          <div class="kpi-value" style="color:var(--green);">${completed}</div>
+          <div class="kpi-detail">retention ${retention !== null ? retention.toFixed(0) + '%' : '—'}</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Abandonaron</div>
+          <div class="kpi-value" style="color:var(--red);">${abandoned}</div>
+          <div class="kpi-detail">${avgAbandon !== null ? 'avg día ' + Math.round(avgAbandon) : 'sin abandonos aún'}</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Días a 1ra venta</div>
+          <div class="kpi-value" style="color:var(--purple);">${avgFirstSale !== null ? Math.round(avgFirstSale) : '—'}</div>
+          <div class="kpi-detail">promedio · ${firstSales.length} vendieron</div>
+        </div>
+      `;
+    }
+
+    function getCurrentMilestone(hire) {
+      // Returns the next milestone key that's not done yet, based on time
+      if (hire.status !== 'active') return null;
+      const days = daysBetween(hire.hire_date);
+      for (const m of MILESTONES) {
+        if (days >= m.dayOffset && !(hire.milestones || {})[m.key]?.done) return m.key;
+      }
+      return null;
+    }
+
+    function renderHireList(rows) {
+      const list = document.getElementById('hire-list');
+      if (!rows.length) { list.innerHTML = '<div class="empty">Sin hires en este filtro</div>'; return; }
+      list.innerHTML = rows.map(h => {
+        const days = daysBetween(h.hire_date);
+        const ms = h.milestones || {};
+        const current = getCurrentMilestone(h);
+        const timelineHtml = MILESTONES.map(m => {
+          const done = ms[m.key]?.done;
+          const isCurrent = m.key === current;
+          let cls = 'ts-step';
+          if (h.status === 'abandoned' && !done) cls += ' abandoned';
+          else if (done) cls += ' done';
+          else if (isCurrent) cls += ' current';
+          return `<div class="${cls}">${done ? '✓ ' : ''}${m.label}</div>`;
+        }).join('');
+        const stateBadge = h.status === 'abandoned'
+          ? `<span class="pill fail">Abandonó día ${daysBetween(h.hire_date, h.abandon_date)}</span>`
+          : h.status === 'completed_45d'
+            ? '<span class="pill pass">Completó 45d</span>'
+            : `<span class="pill" style="background:var(--gray-100); color:var(--gray-700);">Día ${days}</span>`;
+        const firstSale = h.first_sale_date ? ` · 💰 1ra venta día ${daysBetween(h.hire_date, h.first_sale_date)}` : '';
+        return `
+          <div class="hire-row ${h.status === 'abandoned' ? 'abandoned' : h.status === 'completed_45d' ? 'completed' : ''}" onclick="openHireDrawer('${h.id}')">
+            <div class="hire-header">
+              <div>
+                <div class="hire-name">${escapeHtml(h.candidate_name)}</div>
+                <div class="hire-meta">${escapeHtml(h.location)} · Hire ${h.hire_date}${h.hiring_manager ? ' · Mgr ' + escapeHtml(h.hiring_manager) : ''}${firstSale}</div>
+              </div>
+              ${stateBadge}
+            </div>
+            <div class="timeline">${timelineHtml}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function quickHireFromScorecard(scorecardId, name, location) {
+      openAddHireModal();
+      // Pre-fill from scorecard
+      document.getElementById('ah-name').value = name;
+      document.getElementById('ah-loc').value = location;
+      document.getElementById('ah-link').value = scorecardId;
+      closeDrawer();
+    }
+
+    // ============== ADD HIRE MODAL ==============
+    function openAddHireModal() {
+      document.getElementById('ah-name').value = '';
+      document.getElementById('ah-loc').value = '';
+      document.getElementById('ah-date').value = todayISO();
+      document.getElementById('ah-manager').value = currentUser || '';
+      refreshScorecardLinkOptions();
+      document.getElementById('add-hire-overlay').classList.add('show');
+    }
+    function closeAddHireModal() { document.getElementById('add-hire-overlay').classList.remove('show'); }
+
+    function refreshScorecardLinkOptions() {
+      const sel = document.getElementById('ah-link');
+      if (!sel) return;
+      // Only show passed scorecards not already linked to a hire
+      const linkedIds = new Set(allHires.map(h => h.scorecard_id).filter(Boolean));
+      const candidates = allScorecards
+        .filter(s => getVerdictClass(s.total_score) !== 'fail')
+        .filter(s => !linkedIds.has(s.id))
+        .slice(0, 50);
+      sel.innerHTML = '<option value="">Sin vincular</option>' +
+        candidates.map(s => `<option value="${s.id}" data-name="${escapeAttr(s.candidate_name)}" data-loc="${s.location}">${escapeHtml(s.candidate_name)} (${s.location} · ${s.total_score}/50)</option>`).join('');
+      sel.onchange = () => {
+        const opt = sel.options[sel.selectedIndex];
+        if (opt && opt.dataset.name) {
+          document.getElementById('ah-name').value = opt.dataset.name;
+          document.getElementById('ah-loc').value = opt.dataset.loc;
+        }
+      };
+    }
+
+    async function submitAddHire() {
+      const name = document.getElementById('ah-name').value.trim();
+      const loc = document.getElementById('ah-loc').value;
+      const date = document.getElementById('ah-date').value;
+      const mgr = document.getElementById('ah-manager').value.trim();
+      const linkId = document.getElementById('ah-link').value || null;
+      if (!name || !loc || !date) { alert('Completa nombre, locación y fecha'); return; }
+      const body = {
+        candidate_name: name,
+        location: loc,
+        hire_date: date,
+        hiring_manager: mgr || null,
+        scorecard_id: linkId,
+        created_by: currentUser,
+        updated_by: currentUser
+      };
+      try {
+        const res = await fetch(`${SUPA_URL}/rest/v1/ar_new_hire_lifecycle`, {
+          method: 'POST',
+          headers: { ...SUPA_HEADERS, Prefer: 'return=representation' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        closeAddHireModal();
+        await refresh();
+        switchView('lifecycle');
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // ============== HIRE DRAWER (detail) ==============
+    let currentHireId = null;
+
+    function openHireDrawer(id) {
+      const h = allHires.find(x => x.id === id);
+      if (!h) return;
+      currentHireId = id;
+      document.getElementById('hd-name').textContent = h.candidate_name;
+      const daysIn = daysBetween(h.hire_date);
+      document.getElementById('hd-meta').textContent = `${h.location} · Hire ${h.hire_date} · Día ${daysIn}${h.hiring_manager ? ' · Mgr ' + h.hiring_manager : ''}`;
+      renderHireDetailBody(h);
+      document.getElementById('hire-drawer').classList.add('show');
+    }
+    function closeHireDrawer() { document.getElementById('hire-drawer').classList.remove('show'); currentHireId = null; }
+
+    function renderHireDetailBody(h) {
+      const ms = h.milestones || {};
+      const daysIn = daysBetween(h.hire_date);
+      const abandoned = h.status === 'abandoned';
+      const completed = h.status === 'completed_45d';
+
+      // Milestone checkboxes
+      const msHtml = MILESTONES.map(m => {
+        const done = ms[m.key]?.done;
+        const date = ms[m.key]?.date;
+        const eligible = daysIn >= m.dayOffset && !abandoned;
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1.5px solid ${done ? 'var(--green)' : 'var(--gray-200)'}; border-radius:10px; margin-bottom:8px; background:${done ? '#ecfdf5' : 'white'};">
+            <div>
+              <div style="font-weight:700; font-size:14px; color:${done ? 'var(--green)' : 'var(--gray-700)'};">${done ? '✓ ' : ''}${m.label} (día ${m.dayOffset})</div>
+              ${done && date ? `<div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Marcado ${date}</div>` : ''}
+            </div>
+            ${abandoned || completed
+              ? ''
+              : done
+                ? `<button onclick="toggleMilestone('${m.key}', false)" style="background:white; border:1px solid var(--gray-300); color:var(--gray-700); border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer; font-family:inherit;">Deshacer</button>`
+                : eligible
+                  ? `<button onclick="toggleMilestone('${m.key}', true)" style="background:var(--primary); border:none; color:white; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;">Marcar</button>`
+                  : `<span style="font-size:11px; color:var(--gray-400);">faltan ${m.dayOffset - daysIn} días</span>`
+            }
+          </div>
+        `;
+      }).join('');
+
+      // First sale section
+      const firstSaleHtml = h.first_sale_date
+        ? `<div style="padding:12px 16px; background:#f3e8ff; border-radius:10px; margin-bottom:8px;">
+            <div style="font-weight:700; color:var(--purple); font-size:13px;">💰 Primera venta: ${h.first_sale_date} (día ${daysBetween(h.hire_date, h.first_sale_date)})</div>
+            ${!abandoned && !completed ? `<button onclick="clearFirstSale()" style="margin-top:6px; background:white; border:1px solid var(--gray-300); border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-family:inherit;">Quitar</button>` : ''}
+          </div>`
+        : (!abandoned && !completed
+          ? `<button onclick="markFirstSale()" style="width:100%; padding:11px; background:#f3e8ff; color:var(--purple); border:1.5px dashed var(--purple); border-radius:10px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px;">💰 Marcar primera venta</button>`
+          : '');
+
+      // Abandon section
+      const abandonHtml = abandoned
+        ? `<div style="padding:12px 16px; background:#fef2f2; border:1.5px solid #fecaca; border-radius:10px; margin-top:14px;">
+            <div style="font-weight:700; color:var(--red); font-size:13px;">❌ Abandonó: ${h.abandon_date} (día ${daysBetween(h.hire_date, h.abandon_date)})</div>
+            ${h.abandon_reason ? `<div style="font-size:12px; color:var(--gray-700); margin-top:6px;">Razón: ${escapeHtml(h.abandon_reason)}</div>` : ''}
+            <button onclick="undoAbandon()" style="margin-top:8px; background:white; border:1px solid var(--gray-300); border-radius:6px; padding:5px 12px; font-size:11px; cursor:pointer; font-family:inherit;">Deshacer abandono</button>
+          </div>`
+        : !completed
+          ? `<button onclick="markAbandoned()" style="width:100%; margin-top:14px; padding:11px; background:#fef2f2; color:var(--red); border:1.5px dashed #fca5a5; border-radius:10px; font-weight:700; cursor:pointer; font-family:inherit;">Marcar como abandonó…</button>`
+          : '';
+
+      // Notes
+      const notesHtml = `
+        <div style="margin-top:18px;">
+          <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray-500); margin-bottom:6px;">Notas del hiring manager</div>
+          <textarea id="hd-notes" rows="3" style="width:100%; padding:10px 12px; border:1.5px solid var(--gray-300); border-radius:8px; font-size:13px; font-family:inherit; resize:vertical;" placeholder="Observaciones, áreas de mejora, contexto…">${escapeHtml(h.notes || '')}</textarea>
+          <button onclick="saveHireNotes()" class="btn btn-primary" style="margin-top:8px;">Guardar notas</button>
+        </div>
+      `;
+
+      // Delete button (master only)
+      const deleteHtml = isMaster() ? `
+        <div style="margin-top:24px; padding-top:14px; border-top:1px solid var(--gray-200); display:flex; justify-content:flex-end;">
+          <button onclick="deleteHire()" style="background:#fef2f2; color:var(--red); border:1.5px solid #fecaca; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;">🗑 Eliminar hire</button>
+        </div>
+      ` : '';
+
+      document.getElementById('hd-body').innerHTML = `
+        ${firstSaleHtml}
+        <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray-500); margin:14px 0 10px;">Milestones</div>
+        ${msHtml}
+        ${abandonHtml}
+        ${notesHtml}
+        ${deleteHtml}
+      `;
+    }
+
+    async function patchHire(patch) {
+      patch.updated_at = new Date().toISOString();
+      patch.updated_by = currentUser;
+      const res = await fetch(`${SUPA_URL}/rest/v1/ar_new_hire_lifecycle?id=eq.${currentHireId}`, {
+        method: 'PATCH',
+        headers: { ...SUPA_HEADERS, Prefer: 'return=representation' },
+        body: JSON.stringify(patch)
+      });
+      if (!res.ok) { alert('Error: ' + await res.text()); return null; }
+      const updated = (await res.json())[0];
+      const idx = allHires.findIndex(h => h.id === currentHireId);
+      if (idx >= 0) allHires[idx] = updated;
+      renderLifecycle();
+      renderHireDetailBody(updated);
+      return updated;
+    }
+
+    async function toggleMilestone(key, on) {
+      const h = allHires.find(x => x.id === currentHireId);
+      if (!h) return;
+      const ms = { ...(h.milestones || {}) };
+      if (on) ms[key] = { done: true, date: todayISO(), marked_by: currentUser };
+      else delete ms[key];
+      // If day_45 marked → status completed_45d
+      const newStatus = (on && key === 'day_45') ? 'completed_45d' : (h.status === 'completed_45d' && !on && key === 'day_45') ? 'active' : h.status;
+      await patchHire({ milestones: ms, status: newStatus });
+    }
+
+    async function markFirstSale() {
+      const d = prompt('Fecha de la primera venta (YYYY-MM-DD):', todayISO());
+      if (!d) return;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { alert('Formato YYYY-MM-DD'); return; }
+      await patchHire({ first_sale_date: d });
+    }
+    async function clearFirstSale() {
+      if (!confirm('¿Quitar marca de primera venta?')) return;
+      await patchHire({ first_sale_date: null });
+    }
+
+    async function markAbandoned() {
+      const d = prompt('Fecha de abandono (YYYY-MM-DD):', todayISO());
+      if (!d) return;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { alert('Formato YYYY-MM-DD'); return; }
+      const reason = prompt('Razón breve (opcional):', '');
+      await patchHire({ status: 'abandoned', abandon_date: d, abandon_reason: reason || null });
+    }
+    async function undoAbandon() {
+      if (!confirm('¿Deshacer abandono? El hire volverá a estar activo.')) return;
+      await patchHire({ status: 'active', abandon_date: null, abandon_reason: null });
+    }
+
+    async function saveHireNotes() {
+      const notes = document.getElementById('hd-notes').value.trim();
+      await patchHire({ notes: notes || null });
+      // Visual feedback
+      const btn = document.querySelector('#hd-body .btn-primary');
+      if (btn) { btn.textContent = '✓ Guardado'; setTimeout(() => btn.textContent = 'Guardar notas', 1500); }
+    }
+
+    async function deleteHire() {
+      if (!isMaster()) return;
+      const h = allHires.find(x => x.id === currentHireId);
+      if (!h) return;
+      if (!confirm(`¿Eliminar el hire de "${h.candidate_name}"? Esto no se puede deshacer.`)) return;
+      const res = await fetch(`${SUPA_URL}/rest/v1/ar_new_hire_lifecycle?id=eq.${currentHireId}`, {
+        method: 'DELETE',
+        headers: SUPA_HEADERS
+      });
+      if (!res.ok && res.status !== 204) { alert('Error: ' + await res.text()); return; }
+      closeHireDrawer();
+      await refresh();
     }
   </script>
 </body>
