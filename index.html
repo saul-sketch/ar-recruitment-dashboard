@@ -988,15 +988,28 @@
         ${r.age ? r.age + ' años · ' : ''}${escapeHtml(r.location)} · Entrevistado por ${escapeHtml(r.interviewer)} · ${new Date(r.submitted_at).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}
       `;
       const scoreColor = VERDICT_COLORS[v];
+      // Phone is stored as a "☎ …" first line of notes by the scorecard form.
+      let displayNotes = r.notes || '';
+      let candidatePhone = '';
+      const pm = displayNotes.match(/^☎\s*(.+?)(?:\n———\n?|\n|$)/);
+      if (pm) { candidatePhone = pm[1].trim(); displayNotes = displayNotes.slice(pm[0].length).trim(); }
+      const telHref = candidatePhone ? 'tel:' + candidatePhone.replace(/[^\d+]/g, '') : '';
       document.getElementById('drawer-body').innerHTML = `
         <div style="text-align:center; padding:20px 0 24px;">
           <div style="font-size:48px; font-weight:900; color:${scoreColor}; line-height:1;">${r.total_score}/50</div>
           <div style="margin-top:8px;"><span class="pill ${v}" style="font-size:13px; padding:5px 14px;">${getVerdictLabel(r.total_score)}</span></div>
         </div>
-        ${r.notes ? `
+        ${candidatePhone ? `
+          <a href="${telHref}" style="display:flex; align-items:center; gap:10px; text-decoration:none; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:12px; padding:13px 16px; margin-bottom:18px;">
+            <span style="font-size:20px;">📞</span>
+            <span style="flex:1;"><span style="display:block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray-500);">Teléfono del candidato</span><span style="font-size:17px; font-weight:800; color:var(--primary);">${escapeHtml(candidatePhone)}</span></span>
+            <span style="font-size:12px; font-weight:700; color:var(--primary);">Llamar →</span>
+          </a>
+        ` : ''}
+        ${displayNotes ? `
           <div style="background:var(--gray-50); border-left:4px solid var(--primary); border-radius:0 10px 10px 0; padding:14px 16px; margin-bottom:18px;">
             <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray-500); margin-bottom:6px;">Notas del entrevistador</div>
-            <div style="font-size:14px; line-height:1.55; color:var(--gray-800); white-space:pre-wrap;">${escapeHtml(r.notes)}</div>
+            <div style="font-size:14px; line-height:1.55; color:var(--gray-800); white-space:pre-wrap;">${escapeHtml(displayNotes)}</div>
           </div>
         ` : ''}
         <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray-500); margin-bottom:10px;">Detalle por pregunta</div>
