@@ -210,6 +210,77 @@
     .quality-delta.down { background: #fef2f2; color: #991b1b; }
     .quality-delta.flat { background: var(--gray-100); color: var(--gray-600); }
     .quality-vs { font-size: 11px; color: var(--gray-500); margin-top: 6px; }
+
+    /* ===== Touch screens wider than a phone (phone landscape, tablets): finger-sized controls ===== */
+    @media (pointer: coarse) and (min-width: 768px) {
+      .btn { min-height: 44px; }
+      .view-tab, .filter-tab, .drawer-close, .drawer-body button { min-height: 40px; }
+      .drawer-body .round-btn { width: 40px !important; height: 40px !important; }
+      .field-input, .field-select, #hd-notes { font-size: 16px !important; }
+      .kpi-label, .kpi-detail, .filter-label, .brand-text small, .pill, th, .hire-meta, .ts-step,
+      .breakdown-q small, .quality-vs, .bar-row .val, td span[style*="font-size:11px"],
+      .drawer-body [style*="font-size:10px"], .drawer-body [style*="font-size:11px"], .drawer-header [style*="font-size:11px"] { font-size: 12px !important; }
+    }
+
+    /* ===== Phone layout (desktop untouched) ===== */
+    @media (max-width: 767px) {
+      /* Bigger taps, no iOS zoom on inputs */
+      .btn { min-height: 44px; }
+      .field-input, .field-select, #hd-notes { font-size: 16px !important; }
+      .drawer-close { min-height: 40px; padding: 8px 14px; }
+      .drawer-body button { min-height: 40px; }
+      .drawer-body .round-btn { width: 40px !important; height: 40px !important; }
+      .drawer-body a:not([href^="tel:"]) { display: inline-flex; align-items: center; min-height: 40px; }
+      .drawer { max-height: 92vh; max-height: 92dvh; overscroll-behavior: contain; }
+      .drawer-header { padding: 14px 16px; gap: 10px; z-index: 2; }
+      .drawer-body { padding: 16px; }
+      .drawer-body [style*="font-size:10px"], .drawer-body [style*="font-size:11px"], .drawer-header [style*="font-size:11px"] { font-size: 12px !important; }
+      .drawer-body [style*="justify-content:flex-end"] .btn { flex: 1; }
+
+      /* Readable small text */
+      .kpi-label, .kpi-detail, .filter-label, .brand-text small, .pill, th, .hire-meta,
+      .breakdown-q small, .quality-vs, .bar-row .val, td span[style*="font-size:11px"] { font-size: 12px !important; }
+
+      /* View tabs: full width */
+      .view-tabs { display: flex; width: 100%; }
+      .view-tab { flex: 1; min-height: 44px; padding: 10px 8px; white-space: nowrap; }
+
+      /* Filters: label above each group, groups full width & scrollable */
+      .filters { flex-direction: column; align-items: stretch; gap: 6px; }
+      .filter-label { margin: 6px 0 0; }
+      .filters > * { min-width: 0; max-width: 100%; }
+      .filter-group { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .filter-group::-webkit-scrollbar { display: none; }
+      .filter-tab { flex: 1 0 auto; min-height: 40px; white-space: nowrap; padding: 8px 12px; }
+      .filters > .btn { margin: 8px 0 0 !important; width: 100%; }
+
+      /* Bar lists: value never wraps */
+      .bar-row { grid-template-columns: 88px 1fr auto; }
+      .bar-row .val { white-space: nowrap; }
+
+      .section-card { padding: 16px; }
+
+      /* Wide tables become cards */
+      .card-table thead { display: none; }
+      .card-table, .card-table tbody { display: block; width: 100%; }
+      .card-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--gray-200); border-radius: 12px; background: white; }
+      .card-table tbody tr:hover { background: white; }
+      .card-table tbody tr[onclick]:active { background: var(--gray-50); }
+      .card-table td { display: block; padding: 0; border: none; font-size: 14px; min-width: 0; }
+      .card-table td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray-500); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .card-table td.cell-title { grid-column: 1 / -1; font-size: 16px; order: -1; }
+      .card-table.cols-3 tr { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .card-table td.cell-wide { grid-column: 1 / -1; }
+      .card-table td.cell-title::before, .card-table td.empty::before { display: none; }
+      .card-table td.empty { grid-column: 1 / -1; }
+      .card-table tr:has(td.empty) { border: none; background: transparent; }
+      .table-wrap { margin: 0; }
+
+      /* Post-hire timeline: 3 per row so labels fit */
+      .timeline { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .ts-step { height: 30px; font-size: 12px; letter-spacing: 0; }
+      .hire-header { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
@@ -318,7 +389,7 @@
         <h3>Comparativa entrevistadores</h3>
         <div class="section-sub">Qué tan estricto o flexible es cada uno · útil para calibrar criterios entre el equipo</div>
         <div class="table-wrap">
-          <table>
+          <table class="card-table">
             <thead>
               <tr>
                 <th>Entrevistador</th>
@@ -356,7 +427,7 @@
         <h3>Candidatos entrevistados</h3>
         <div class="section-sub">Click cualquier fila para ver el desglose completo</div>
         <div class="table-wrap">
-          <table>
+          <table class="card-table cols-3">
             <thead>
               <tr>
                 <th>Fecha</th>
@@ -861,14 +932,14 @@
         const dateNice = new Date(r.submitted_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
         return `
           <tr onclick="openDrawer('${r.id}')">
-            <td>${dateNice}</td>
-            <td style="font-weight:600;">${escapeHtml(r.candidate_name)}</td>
-            <td>${r.age || '—'}</td>
-            <td><span class="pill ${r.location === 'Orlando' ? 'loc-orl' : 'loc-kis'}">${escapeHtml(r.location)}</span></td>
-            <td>${escapeHtml(r.interviewer || '—')}</td>
-            <td class="score-cell ${v}">${r.total_score}/50</td>
-            <td><span class="pill ${v}">${getVerdictLabel(r.total_score)}</span></td>
-            <td>${r.duration_minutes ? r.duration_minutes + 'm' : '—'}</td>
+            <td data-label="Fecha">${dateNice}</td>
+            <td class="cell-title" data-label="Candidato" style="font-weight:600;">${escapeHtml(r.candidate_name)}</td>
+            <td data-label="Edad">${r.age || '—'}</td>
+            <td data-label="Locación"><span class="pill ${r.location === 'Orlando' ? 'loc-orl' : 'loc-kis'}">${escapeHtml(r.location)}</span></td>
+            <td data-label="Entrevistó">${escapeHtml(r.interviewer || '—')}</td>
+            <td data-label="Score" class="score-cell ${v}">${r.total_score}/50</td>
+            <td data-label="Verdict"><span class="pill ${v}">${getVerdictLabel(r.total_score)}</span></td>
+            <td data-label="Duración">${r.duration_minutes ? r.duration_minutes + 'm' : '—'}</td>
           </tr>
         `;
       }).join('');
@@ -928,6 +999,13 @@
       9: 'Q9 · ¿Pagarías $1,600 de tu bolsillo?',
       10: 'Q10 · ¿Te la jugarías por esta persona?'
     };
+    function isPhone() { return window.innerWidth < 768; }
+    function wrapLabel(txt, max) {
+      const words = String(txt).split(' '); const lines = []; let cur = '';
+      words.forEach(w => { if ((cur + ' ' + w).trim().length > max && cur) { lines.push(cur); cur = w; } else { cur = (cur + ' ' + w).trim(); } });
+      if (cur) lines.push(cur);
+      return lines;
+    }
     function renderQuestionAnalysis(rows) {
       if (!rows.length) return emptyChart('chart-questions');
       const sums = {}, counts = {};
@@ -945,13 +1023,14 @@
         if (counts[qid] === 0) continue;
         const avg = +(sums[qid] / counts[qid]).toFixed(2);
         data.push(avg);
-        cats.push(QUESTION_LABELS[qid]);
+        cats.push(isPhone() ? wrapLabel(QUESTION_LABELS[qid], 22) : QUESTION_LABELS[qid]);
       }
       if (!data.length) return emptyChart('chart-questions', 'Sin scores aún');
       const colors = data.map(v => v < 3 ? '#ef4444' : v < 3.5 ? '#f59e0b' : '#10b981');
       mountChart('chart-questions', {
-        chart: { type: 'bar', height: 380, toolbar: { show: false }, fontFamily: 'inherit' },
+        chart: { type: 'bar', height: isPhone() ? 560 : 380, toolbar: { show: false }, fontFamily: 'inherit' },
         series: [{ name: 'Score promedio', data }],
+        ...(isPhone() ? { yaxis: { labels: { maxWidth: 170, style: { fontSize: '12px' } } } } : {}),
         xaxis: { categories: cats, max: 5, min: 0, labels: { formatter: v => Number(v).toFixed(1) } },
         plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true, barHeight: '70%' } },
         colors,
@@ -985,13 +1064,13 @@
         const label = Math.abs(delta) <= 1 ? '(en línea)' : delta > 0 ? '(más generoso)' : '(más estricto)';
         return `
           <tr>
-            <td style="font-weight:700;">${escapeHtml(name)}</td>
-            <td>${d.total}</td>
-            <td style="font-weight:700;">${avg.toFixed(1)}</td>
-            <td style="color:${deltaColor}; font-weight:600;">${deltaStr} <span style="color:var(--gray-500); font-weight:400;">${label}</span></td>
-            <td><span class="pill pass">${(d.pass / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.pass})</span></td>
-            <td><span class="pill borderline">${(d.borderline / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.borderline})</span></td>
-            <td><span class="pill fail">${(d.fail / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.fail})</span></td>
+            <td class="cell-title" style="font-weight:700;">${escapeHtml(name)}</td>
+            <td data-label="Entrevistas">${d.total}</td>
+            <td data-label="Score avg" style="font-weight:700;">${avg.toFixed(1)}</td>
+            <td data-label="vs equipo" class="cell-wide" style="color:${deltaColor}; font-weight:600;">${deltaStr} <span style="color:var(--gray-500); font-weight:400;">${label}</span></td>
+            <td data-label="% Aprobados"><span class="pill pass">${(d.pass / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.pass})</span></td>
+            <td data-label="% Borderline"><span class="pill borderline">${(d.borderline / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.borderline})</span></td>
+            <td data-label="% No pasa"><span class="pill fail">${(d.fail / d.total * 100).toFixed(0)}%</span> <span style="color:var(--gray-400); font-size:11px;">(${d.fail})</span></td>
           </tr>
         `;
       }).join('');
@@ -1402,8 +1481,8 @@
             </div>
             ${!abandoned && !completed ? `
               <div style="display:flex; gap:6px;">
-                <button onclick="adjustSales(-1)" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--gray-300); background:white; font-size:18px; font-weight:700; cursor:pointer;" ${(h.sales_count||0) <= 0 ? 'disabled' : ''}>−</button>
-                <button onclick="adjustSales(1)" style="width:36px; height:36px; border-radius:50%; border:none; background:var(--green); color:white; font-size:20px; font-weight:700; cursor:pointer;">+</button>
+                <button class="round-btn" onclick="adjustSales(-1)" style="width:36px; height:36px; border-radius:50%; border:1.5px solid var(--gray-300); background:white; font-size:18px; font-weight:700; cursor:pointer;" ${(h.sales_count||0) <= 0 ? 'disabled' : ''}>−</button>
+                <button class="round-btn" onclick="adjustSales(1)" style="width:36px; height:36px; border-radius:50%; border:none; background:var(--green); color:white; font-size:20px; font-weight:700; cursor:pointer;">+</button>
               </div>
             ` : ''}
           </div>
